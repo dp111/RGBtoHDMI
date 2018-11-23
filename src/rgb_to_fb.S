@@ -49,10 +49,7 @@
         // Clear the VSYNC interrupt
         CLEAR_VSYNC
         // Mark the next line in red
-        orr    r7, #0x11000000
-        orr    r7, #0x00110000
-        orr    r7, #0x00001100
-        orr    r7, #0x00000011
+        ldr    r7, =0x11111111
 novsync\@:
 .endm
 
@@ -126,9 +123,6 @@ wait\@:
 
 process_chars_loop\@:
 
-        // Initialize 8 pixel block
-        mov    r10, #0
-
 .if \psync_polarity == 1
         // Wait for 0-1 edge on PSYNC
         WAIT_FOR_PSYNC_1
@@ -142,10 +136,9 @@ process_chars_loop\@:
         // Pixel 2 in GPIO 10.. 8 -> 15..12
         // Pixel 3 in GPIO 13..11 -> 11.. 8
 
-        and    r9, r8, #(7 << PIXEL_BASE)
-        orr    r10, r10, r9, lsl #(4 - PIXEL_BASE)
-
-        and    r9, r8, #(7 << (PIXEL_BASE + 3))
+        and    r10, r8, #(7 << PIXEL_BASE)
+        and    r9 , r8, #(7 << (PIXEL_BASE + 3))
+        mov    r10, r10, lsl #(4 - PIXEL_BASE)
         orr    r10, r10, r9, lsr #(3 + PIXEL_BASE)
 
         and    r9, r8, #(7 << (PIXEL_BASE + 6))
@@ -226,9 +219,6 @@ process_chars_7\@:
 
 process_chars_loop_7\@:
 
-        // Initialize 8 pixel block
-        mov    r10, #0
-
 .if \psync_polarity == 1
         // Wait for 0-1 edge on PSYNC
         WAIT_FOR_PSYNC_1
@@ -244,10 +234,9 @@ process_chars_loop_7\@:
         // Pixel 2 in GPIO 10.. 8 -> 15..12
         // Pixel 3 in GPIO 13..11 -> 11.. 8
 
-        and    r9, r8, #(7 << PIXEL_BASE)
-        orr    r10, r10, r9, lsl #(4 - PIXEL_BASE)
-
+        and    r10, r8, #(7 << PIXEL_BASE)
         and    r9, r8, #(7 << (PIXEL_BASE + 3))
+        mov    r10, r10, lsl #(4 - PIXEL_BASE)
         orr    r10, r10, r9, lsr #(3 + PIXEL_BASE)
 
         ldr    r1, [r11,r2]         // preload other field old pixel value from comparison buffer
