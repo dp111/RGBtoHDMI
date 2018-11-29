@@ -25,29 +25,30 @@ capture_line_mode7_4bpp:
         //
         push   {lr}
 
-	tst    r3, #BIT_CALIBRATE
+        tst    r3, #BIT_CALIBRATE
         bne    process_chars_7_none
 	
-	ands   r8, r3, #MASK_INTERLACE
+	      ands   r8, r3, #MASK_INTERLACE
 		                           //DEINTERLACE_NONE
-	beq    process_chars_7_none
+	      beq    process_chars_7_none
         
-	mov    r9, r8, lsr #OFFSET_INTERLACE   // put interlace setting in R9 0-6
+        mov    r9, r8, lsr #OFFSET_INTERLACE   // put interlace setting in R9 0-6
 
-	cmp    r9, #1               //DEINTERLACE_BOB
-	beq    process_chars_7_bob
+	      cmp    r9, #1               //DEINTERLACE_BOB
+        beq    process_chars_7_bob
 		
-	tst    r3, #BIT_FIELD_TYPE  // test odd or even field
+	      tst    r3, #BIT_FIELD_TYPE  // test odd or even field
         mla    r11, r5, r2, r0      // offset to second buffer used for comparison not for display
                                     // now absolute address of pixel group in comparison buffer
         rsbeq  r2, r2,#0            // negate R2 offset if odd field to write to line above (restored to original value on exit)
 	
-	mov    r12, r0              // pointer to the line in the frame buffer	
+	      mov    r12, r0              // pointer to the line in the frame buffer	
 	
-	cmp    r9, #6               //DEINTERLACE_ADV
-	beq    process_chars_7_advanced
+	      cmp    r9, #6               //DEINTERLACE_ADV
+	      beq    process_chars_7_advanced
 	
 // Simple motion adaptive deinterlace
+
         // Working registers:
         //
         // TODO: Check this is still correct
@@ -83,6 +84,7 @@ process_chars_loop_7_simple:
         CAPTURE_HIGH_BITS
 
         ldr    r8, =0x77777777      // mask to extract OSD
+
         tst    r3, #BIT_OSD 
         moveq  r9, #0
         ldrne  r9, [r0]             // preload old pixel value from video buffer
@@ -96,16 +98,17 @@ process_chars_loop_7_simple:
         orrne  r10, #0x00008000     // set 3rd flag as old 1st flag
         tst    r12,  #0x00800000
         orrne  r10, #0x00000080     // set 4th flag as old 2nd flag
-	and    r6, r3, #MASK_INTERLACE
+        and    r6, r3, #MASK_INTERLACE
         str    r10, [r11],#4        // save new value to comparison buffer including flag bit
         
-	mov    r6, r6, lsr #OFFSET_INTERLACE   // put interlace setting in R1
+        mov    r6, r6, lsr #OFFSET_INTERLACE   // put interlace setting in R1
 		
         cmp    r6,#4                // if setting =< DEINTERLACE_MA3 then clear 4th motion flag
         bicle  r10, r10, #0x00000080
         cmp    r6,#3                // if setting =< DEINTERLACE_MA2 then clear 3rd motion flag
         bicle  r10, r10, #0x00008000	                                    
-	cmp    r6,#2				// if setting =< DEINTERLACE_MA1 then clear 2nd motion flag			
+        cmp    r6,#2				// if setting =< DEINTERLACE_MA1 then clear 2nd motion flag			
+
         bicle  r10, r10, #0x00800000
 
         bics   r6, r10, r8          // extract motion flags
@@ -127,11 +130,13 @@ process_chars_loop_7_simple:
         pop    {pc}
 
 process_chars_7_none:
+
 		// No deinterlace
-	mov    r7, #0
+        mov    r7, #0
         tst    r3, #BIT_VSYNC_MARKER
         ldrne  r7, =0x11111111      // the VSync indicator
-	ldr    r11, =0x77777777      // mask to extract OSD		
+        ldr    r11, =0x77777777      // mask to extract OSD		
+
 process_chars_loop_7_none:
 
         WAIT_FOR_PSYNC_10           // expects GPLEV0 in r4, result in r8
@@ -143,23 +148,24 @@ process_chars_loop_7_none:
         CAPTURE_HIGH_BITS           // input in r8, result in r10, corrupts r9/r14
 
         ldr    r9, [r0]            // preload old pixel value from video buffer
-	bic    r9, r9, r11
+        bic    r9, r9, r11
 	
         orr    r10, r10, r7	
 		
-	orr    r10, r10, r9
+        orr    r10, r10, r9
         str    r10, [r0], #4
         subs   r1, r1, #1
         bne    process_chars_loop_7_none
 
         pop    {pc}
 
+
 process_chars_7_bob:
 		// Simple bob deinterlace
-	mov    r7, #0
+        mov    r7, #0
         tst    r3, #BIT_VSYNC_MARKER
         ldrne  r7, =0x11111111      // the VSync indicator
-	ldr    r11, =0x77777777      // mask to extract OSD
+        ldr    r11, =0x77777777      // mask to extract OSD
 	
 process_chars_loop_7_bob:
 
@@ -174,28 +180,30 @@ process_chars_loop_7_bob:
         CAPTURE_HIGH_BITS           // input in r8, result in r10, corrupts r9/r14
 
         tst    r3, #BIT_OSD 
-	ldrne  r9, [r0]            // preload old pixel value from video buffer    
+        ldrne  r9, [r0]            // preload old pixel value from video buffer    
         moveq  r9,#0
-	bic    r6, r6, r11
-	bic    r9, r9, r11
-
+        
         orr    r10, r10, r7	
+        bic    r6, r6, r11
+        bic    r9, r9, r11
 	       		
         // Line double always in Modes 0-6 regardless of interlace
         // On the multi core Pi this introduces stalling artefacts
 #ifndef HAS_MULTICORE
         tst    r3, #BIT_SCANLINES
+
         movne  r14, r6
-        orreq  r14, r10,r6
+        orreq  r14, r10, r6
         str    r14, [r0, r2]
 #endif
-	orr    r10, r10, r9
+        orr    r10, r10, r9
         str    r10, [r0], #4
         subs   r1, r1, #1
+
         bne    process_chars_loop_7_bob
 
         pop    {pc}
-		
+
 osdbuffer1:                                // all 6 osd buffers must be sequential
         .word 0
 osdbuffer2:
